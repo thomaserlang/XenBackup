@@ -8,7 +8,7 @@ Example:
 
 # How it works
 
- 1. Retrives all the virtual machines running on the xenserver
+ 1. Retrives all the virtual machines running on the XenServer
  2. Creates a snapshot
  3. Downloads the snapshot
  4. Deletes the snapshot
