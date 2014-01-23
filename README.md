@@ -8,8 +8,8 @@ Example:
 
 # How it works
 
- - Retrives all the virtual machines running on the xenserver
- - Creates a snapshot
- - Downloads the snapshot
- - Deletes the snapshot
- - Rotates the backup snapshots
+ 1. Retrives all the virtual machines running on the xenserver
+ 2. Creates a snapshot
+ 3. Downloads the snapshot
+ 4. Deletes the snapshot
+ 5. Rotates the backup snapshots
