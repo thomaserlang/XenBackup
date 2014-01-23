@@ -13,3 +13,8 @@ Example:
  3. Downloads the snapshot
  4. Deletes the snapshot
  5. Rotates the backup snapshots
+
+# Missing
+
+ * External logging (Maybe Syslog)
+ * VM white/blacklist
