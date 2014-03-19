@@ -17,5 +17,6 @@ setup(
             'xenbackup = xenbackup:main',
         ],
     },
-    package_dir={'': ''},
+    package_dir={'': 'xenbackup'},
+    packages=find_packages('xenbackup'),
 )
