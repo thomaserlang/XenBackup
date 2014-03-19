@@ -17,5 +17,5 @@ setup(
             'xenbackup = xenbackup:main',
         ],
     },
-    package_dir={''},
+    package_dir={'': ''},
 )
