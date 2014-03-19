@@ -175,7 +175,7 @@ def main():
     parser.add_argument('--rotate_snapshots', help='enable rotate', default=True, type=bool)
     parser.add_argument('--rotate_snapshots_max', help='maximum number of snapshots stored in a directory', default=3, type=int)
 
-    parser.add_argument('--vms', help='a comma separated list of virtual machines to backup', default='', type=str)
+    parser.add_argument('--vms', help='a comma separated list of virtual machines to backup', default=None, type=str)
 
     parser.add_argument('--syslog_ip', help='ip/hostname of the syslog server', default='127.0.0.1', type=str)
     parser.add_argument('--syslog_port', help='port of the syslog server', default=514, type=int)
@@ -201,10 +201,13 @@ def main():
             user=args.user,
             password=args.password,
         )
-        backup_vms = args.vms.lower().split(',')
+        backup_vms = []
+        if args.vms:
+            backup_vms = args.vms.lower().split(',')
         vms = xenbackup.get_vms()
         for vm in vms:
             if (vms[vm]['name_label'].lower() in backup_vms) or not backup_vms:
+                logger.info('[{}][{}] VM backup started'.format(args.host, vms[vm]['name_label']))
                 xenbackup.download_snapshot(
                     opaque_ref=vm,
                     vm_info=vms[vm],
