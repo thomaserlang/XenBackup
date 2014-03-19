@@ -162,8 +162,7 @@ class XenBackup(object):
         except Exception, e:
             logger.error('[{}] Error rotating snapshots: {}'.format(self.server, str(e)))
             return False
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', help='backup directory', required=True, type=str)
     parser.add_argument('--host', help='xenserver host', required=True, type=str)
@@ -222,3 +221,6 @@ if __name__ == '__main__':
     except Exception, e:
         logger.error('[{}] Error occurred when trying to backup VMS. {}'.format(args.host, str(e)))
         raise
+
+if __name__ == '__main__':
+    main()
