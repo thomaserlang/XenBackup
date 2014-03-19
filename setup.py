@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'xenbackup = xenbackup:main',
+            'xenbackup = xenbackup.xenbackup:main',
         ],
     },
     package_dir={'': 'xenbackup'},
