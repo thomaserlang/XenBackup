@@ -17,7 +17,6 @@ setup(
             'xenbackup = xenbackup.xenbackup:main',
         ],
     },
-    include_package_data=True,
     package_dir={'': 'src'},
     packages=find_packages('src'),
     classifiers=[],
