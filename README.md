@@ -34,6 +34,10 @@ Example:
   --vms vm1,vm2         a comma separated list of virtual machines to backup,
                         will backup all virtual machines by default.
 
+  --syslog_ip IP        (default 127.0.0.1)
+
+  --syslog_port PORT    (default 514)
+
 ```
 
 # How it works
@@ -44,12 +48,8 @@ Example:
  4. Deletes the snapshot
  5. Rotates the backup snapshots
 
-# Missing
-
- * External logging (Maybe Syslog)
- * VM white/blacklist
-
 # LICENSE
+
 The MIT License (MIT)
 
 Copyright (c) 2014 Thomas Erlang Sloth
