@@ -195,7 +195,7 @@ if __name__ == '__main__':
     )
     logger.addHandler(handler)
     logger.setLevel(20)
-    logger.info(u'[{}] Starting backup of VMs'.format(args.host))
+    logger.info('[{}] Starting backup of VMs'.format(args.host))
     try:
         xenbackup = XenBackup(
             server=args.host,
