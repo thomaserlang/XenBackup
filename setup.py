@@ -18,4 +18,5 @@ setup(
         ],
     },
     data_files = [('', ['LICENSE', 'README.md'])],
+    package_dir={''},
 )
