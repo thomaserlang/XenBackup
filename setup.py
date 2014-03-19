@@ -17,6 +17,5 @@ setup(
             'xenbackup = xenbackup:main',
         ],
     },
-    data_files = [('', ['LICENSE', 'README.md'])],
     package_dir={''},
 )
