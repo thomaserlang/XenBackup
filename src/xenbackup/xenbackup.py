@@ -157,8 +157,11 @@ class XenBackup(object):
                 url = 'https://{}/export?uuid={}'.format(self.server, self.session.xenapi.VM.get_uuid(snapshot_opaque_ref))
                 vm_path = os.path.abspath(os.path.join(path, vm_uuid))
                 if not os.path.exists(vm_path):
-                    os.mkdir(vm_path)
-                with open(os.path.join(path, 'vms_lookup.json'), 'r+') as f:
+                    os.mkdir(vm_path)    
+                lookup_path = os.path.join(path, 'vms_lookup.json')
+                if not os.path.exists(lookup_path):
+                    open(lookup_path, 'a').close()
+                with open(lookup_path, 'r+') as f:
                     try:
                         data = json.load(f)
                     except ValueError:
