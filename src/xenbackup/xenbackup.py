@@ -145,7 +145,7 @@ class XenBackup(object):
             if tries and (retry_max >= tries):                
                 self.logger.info('Retrying download of snapshot in {} seconds [{}/{}] [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
                     retry_delay, 
-                    ries, 
+                    tries, 
                     retry_max,
                     self.server, 
                     vm_info['name_label'], 
