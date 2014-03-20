@@ -88,7 +88,7 @@ class XenBackup(object):
         tries = 0
         while not done and tries <= retry_max:
             if tries and (retry_max >= tries):
-                self.logger.notice('Retrying snapshot creation in {} seconds [{}/{}][uuid="{}"]'.format(
+                self.logger.info('Retrying snapshot creation in {} seconds [{}/{}][uuid="{}"]'.format(
                     retry_delay, 
                     tries, 
                     retry_max, 
@@ -143,7 +143,7 @@ class XenBackup(object):
         tries = 0
         while not done and tries <= retry_max:
             if tries and (retry_max >= tries):                
-                self.logger.notice('Retrying download of snapshot in {} seconds [{}/{}] [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
+                self.logger.info('Retrying download of snapshot in {} seconds [{}/{}] [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
                     retry_delay, 
                     ries, 
                     retry_max,
