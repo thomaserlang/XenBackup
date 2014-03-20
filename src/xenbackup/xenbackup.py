@@ -158,21 +158,21 @@ class XenBackup(object):
                 vm_path = os.path.abspath(os.path.join(path, vm_uuid))
                 if not os.path.exists(vm_path):
                     os.mkdir(vm_path)
-                    with open(os.path.join(path, 'vms_lookup.json'), 'w+') as f:
-                        try:
-                            data = json.load(f)
-                        except ValueError:
-                            data = {}
-                        data[vm_uuid] = {
-                            'name': vm_info['name_label'],
-                        }
-                        json.dump(
-                            data,
-                            f,
-                            sort_keys=True,
-                            indent=4, 
-                            separators=(',', ': '),
-                        )
+                with open(os.path.join(path, 'vms_lookup.json'), 'w+') as f:
+                    try:
+                        data = json.load(f)
+                    except ValueError:
+                        data = {}
+                    data[vm_uuid] = {
+                        'name': vm_info['name_label'],
+                    }
+                    json.dump(
+                        data,
+                        f,
+                        sort_keys=True,
+                        indent=4, 
+                        separators=(',', ': '),
+                    )
                 vm_snap_path = os.path.abspath(os.path.join(vm_path, '{}.xva'.format(snapshot_name)))
                 self._download_url(vm_snap_path, url)
                 self.logger.info('Snapshot "{}" successfully downloaded. Removing snapshot from the server [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
