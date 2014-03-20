@@ -6,13 +6,21 @@ Example:
 
     xenbackup.py --host xenserver1 --user root --password pw --path=/var/xenbackup
 
+Virtual machine backups will be stored in a folder named after it's uuid.
+
+Example:
+
+  path/<vm-uuid>/<iso8601-timestamp>.xva
+
+A lookup table named: vms_lookup.json will be stored in the root folder.
+
 # Arguments
 
 ```
   -h, --help            show this help message and exit
 
   --path PATH           backup directory (Required)
-                        will be stored as path/<vm-name>/<vm-name>-<iso8601-timestamp>.xva
+                        will be stored as path/<vm-uuid>/<iso8601-timestamp>.xva
 
   --host HOST           xenserver host (Required)
 
