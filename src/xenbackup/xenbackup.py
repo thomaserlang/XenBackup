@@ -158,7 +158,7 @@ class XenBackup(object):
                 vm_path = os.path.abspath(os.path.join(path, vm_uuid))
                 if not os.path.exists(vm_path):
                     os.mkdir(vm_path)
-                with open(os.path.join(path, 'vms_lookup.json'), 'w+') as f:
+                with open(os.path.join(path, 'vms_lookup.json'), 'r+') as f:
                     try:
                         data = json.load(f)
                     except ValueError:
@@ -166,6 +166,7 @@ class XenBackup(object):
                     data[vm_uuid] = {
                         'name': vm_info['name_label'],
                     }
+                    f.seek(0)
                     json.dump(
                         data,
                         f,
