@@ -218,18 +218,19 @@ class XenBackup(object):
         try:
             dirs = os.listdir(path)
             for vm in dirs:
-                path = os.path.abspath(os.path.join(path, vm))
-                if not os.path.isdir(path):
+                path_vm = os.path.abspath(os.path.join(path, vm))
+                if not os.path.isdir(path_vm):
                     continue
-                files = os.listdir(path)
+                files = os.listdir(path_vm)
                 count = len(files)
                 if count > snapshots_max:
                     for snapshot in files[0:count-snapshots_max]:
-                        os.remove(os.path.abspath(os.path.join(path, snapshot)))
+                        os.remove(os.path.abspath(os.path.join(path_vm, snapshot)))
             return True
         except Exception, e:
             self.logger.error('Error rotating snapshots: {} [xenserver="{}"]'.format(str(e), self.server))
         return False
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', help='backup directory', required=True, type=str)
@@ -283,7 +284,6 @@ def main():
                     retry_max=args.retry_max,
                     retry_delay=args.retry_delay,
                 )
-
         if args.rotate_snapshots:
             xenbackup.rotate(
                 path=args.path,
