@@ -210,7 +210,7 @@ class XenBackup(object):
             self.session.xenapi.VM.destroy(snapshot_opaque_ref)
             return True
         except Exception, e:
-            self.logger.error('Error downloading snapshot: {} [xenserver="{}"] [vm_name="{}"]'.format(
+            self.logger.error('Error deleting snapshot: {} [xenserver="{}"] [vm_name="{}"]'.format(
                 str(e),
                 self.server, 
                 vm_info['name_label'], 
