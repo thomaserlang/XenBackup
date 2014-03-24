@@ -100,7 +100,7 @@ class XenBackup(object):
             try:
                 tries += 1
                 name = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
-                result = self.session.xenapi.VM.snapshot(opaque_ref, name)
+                result = self.session.xenapi.VM.snapshot(opaque_ref, '{}_{}'.format(vm_info['name_label'], name))
                 self.logger.info('Snapshot [snapshot_name="{}"] successfully created [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
                     name, 
                     self.server, 
