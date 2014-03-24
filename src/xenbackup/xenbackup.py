@@ -185,7 +185,8 @@ class XenBackup(object):
                     vm_info['name_label'], 
                     vm_uuid,
                 ))
-                self.session.xenapi.VM.destroy(snapshot_opaque_ref)
+                
+                self.delete_snapshot(snapshot_opaque_ref, vm_info)
                 done = True
                 return True
             except Exception, e:
@@ -194,6 +195,26 @@ class XenBackup(object):
                     self.server, 
                     vm_info['name_label'], 
                 ))
+        return False
+
+    def delete_snapshot(self, snapshot_opaque_ref, vm_info):
+        try:
+            snap_record = self.session.xenapi.VM.get_record(snapshot_opaque_ref)  
+            for vbd in snap_record['VBDs']:
+                vbd_record = self.session.xenapi.VBD.get_record(vbd)
+                if vbd_record['type'].lower() != 'disk':
+                    continue                
+                vdi = vbd_record['VDI']
+                sr = self.session.xenapi.VDI.get_SR(vdi)
+                self.session.xenapi.VDI.destroy(vdi)
+            self.session.xenapi.VM.destroy(snapshot_opaque_ref)
+            return True
+        except Exception, e:
+            self.logger.error('Error downloading snapshot: {} [xenserver="{}"] [vm_name="{}"]'.format(
+                str(e),
+                self.server, 
+                vm_info['name_label'], 
+            ))
         return False
 
     def _download_url(self, path, url):
