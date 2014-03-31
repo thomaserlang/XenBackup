@@ -242,7 +242,7 @@ class XenBackup(object):
                 path_vm = os.path.abspath(os.path.join(path, vm))
                 if not os.path.isdir(path_vm):
                     continue
-                files = os.listdir(path_vm)
+                files = sorted(os.listdir(path_vm))
                 count = len(files)
                 if count > snapshots_max:
                     for snapshot in files[0:count-snapshots_max]:
