@@ -47,11 +47,19 @@ class XenBackup(object):
         :param user: str
         :param password: str
         '''
-        self.session = XenAPI.Session('https://{}'.format(server))
-        self.session.xenapi.login_with_password(user, password)
-        self.server = server
+        self.server = self.login(server, user, password)
         self.auth = auth = base64.encodestring("%s:%s" % (user, password)).strip()
         self.logger = logger
+
+    def login(self, server, user, password):
+        try:
+            self.session = XenAPI.Session('https://{}'.format(server))
+            self.session.xenapi.login_with_password(user, password)
+            return server
+        except XenAPI.Failure as e:
+            if e.details[0] == 'HOST_IS_SLAVE':
+                return self.login(e.details[1], user, password) 
+            raise
 
     def get_vms(self):
         all_vms = self.session.xenapi.VM.get_all_records()
@@ -116,6 +124,7 @@ class XenBackup(object):
                     vm_info['name_label'], 
                     vm_uuid
                 ))
+        return (None, None)
 
     def download_vm(self, opaque_ref, vm_info, path, retry_max=3, retry_delay=30):
         '''
