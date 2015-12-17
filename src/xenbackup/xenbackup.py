@@ -29,19 +29,19 @@ import base64
 import socket
 import os.path
 import os
+import ssl
 import argparse
 import logging
-import inspect
 import json
-from rfc5424 import RFC5424Formatter
+import logstash
+from archive_rotator import rotator
+from archive_rotator.algorithms import SimpleRotator
 from datetime import datetime
 from logging.handlers import SysLogHandler
 
-logger = logging.getLogger('xenbackup_logger')
-
 class XenBackup(object):
 
-    def __init__(self, server, user, password, logger=None):
+    def __init__(self, server, user, password, rotate=True, rotate_num=5, logger=None):
         '''
         :param server: str
         :param user: str
@@ -50,6 +50,8 @@ class XenBackup(object):
         self.server = self.login(server, user, password)
         self.auth = auth = base64.encodestring("%s:%s" % (user, password)).strip()
         self.logger = logger
+        self.enable_rotate = rotate
+        self.rotate_num = rotate_num
 
     def login(self, server, user, password):
         try:
@@ -87,44 +89,37 @@ class XenBackup(object):
             returns the opaque_ref id and the name of the snapshot
         '''
         vm_uuid = self.session.xenapi.VM.get_uuid(opaque_ref)
-        self.logger.info('Creating snapshot [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
-            self.server, 
+        extra = {
+            'host': self.server,
+            'vm_name': vm_info['name_label'],
+            'vm_uuid': vm_uuid, 
+        }
+        self.logger.info('Creating snapshot from {}'.format(
             vm_info['name_label'],
-            vm_uuid,
-        ))
+        ), extra)
         done = False
         tries = 0
         while not done and tries <= retry_max:
             if tries and (retry_max >= tries):
-                self.logger.info('Retrying snapshot creation in {} seconds [{}/{}][uuid="{}"]'.format(
+                self.logger.info('Retrying snapshot creation in {} seconds [{}/{}]'.format(
                     retry_delay, 
                     tries, 
                     retry_max, 
-                    self.server, 
-                    vm_info['name_label'], 
-                    vm_uuid,
-                ))
+                ), extra=extra)
                 time.sleep(retry_delay)
             try:
                 tries += 1
                 name = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
                 result = self.session.xenapi.VM.snapshot(opaque_ref, '{}_{}'.format(vm_info['name_label'], name))
-                self.logger.info('Snapshot [snapshot_name="{}"] successfully created [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
-                    name, 
-                    self.server, 
-                    vm_info['name_label'], 
-                    vm_uuid,
-                ))
-                return (result, name)
+                self.logger.info('Snapshot successfully created from {}'.format(
+                    vm_info['name_label'],
+                ), extra=extra)
+                return result
                 done = True
             except Exception, e:
-                self.logger.error('Error creating snapshot: {} [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
-                    str(e),
-                    self.server, 
-                    vm_info['name_label'], 
-                    vm_uuid
-                ))
-        return (None, None)
+                self.logger.error('Error creating snapshot on {}'.format(
+                    vm_info['name_label'],
+                ), extra=extra)
 
     def download_vm(self, opaque_ref, vm_info, path, retry_max=3, retry_delay=30):
         '''
@@ -138,72 +133,54 @@ class XenBackup(object):
             wait x number of seconds before retrying.
         :returns: boolean
         '''
-        snapshot_opaque_ref, snapshot_name = self.create_snapshot(opaque_ref, vm_info, retry_max, retry_delay)
+        snapshot_opaque_ref = self.create_snapshot(opaque_ref, vm_info, retry_max, retry_delay)
         if not snapshot_opaque_ref:
             return None
         vm_uuid = self.session.xenapi.VM.get_uuid(opaque_ref)
-        self.logger.info('Downloading vm to file: {}.xva [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
-            snapshot_name, 
-            self.server, 
-            vm_info['name_label'],
-            vm_uuid,
-        ))
+        extra = {
+            'host': self.server,
+            'vm_name': vm_info['name_label'],
+            'vm_uuid': vm_uuid, 
+        }
+        filename = '{}-{}.xva'.format(vm_info['name_label'], vm_uuid)
+        folder = '{}'.format(vm_info['name_label'])
+        self.logger.info('Downloading vm snapshot from {}'.format(
+            vm_info['name_label']
+        ), extra=extra)
         done = False
         tries = 0
         while not done and tries <= retry_max:
             if tries and (retry_max >= tries):                
-                self.logger.info('Retrying download of snapshot in {} seconds [{}/{}] [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
+                self.logger.info('Retrying download of snapshot in {} seconds [{}/{}]'.format(
                     retry_delay, 
                     tries, 
                     retry_max,
-                    self.server, 
-                    vm_info['name_label'], 
-                    vm_uuid,
-                ))
+                ), extra=extra)
                 time.sleep(retry_delay)
             try:
                 tries += 1
                 url = 'https://{}/export?uuid={}'.format(self.server, self.session.xenapi.VM.get_uuid(snapshot_opaque_ref))
-                vm_path = os.path.abspath(os.path.join(path, vm_uuid))
+                vm_path = os.path.abspath(os.path.join(path, folder))
                 if not os.path.exists(vm_path):
                     os.mkdir(vm_path)    
-                lookup_path = os.path.join(path, 'vms_lookup.json')
-                if not os.path.exists(lookup_path):
-                    open(lookup_path, 'a').close()
-                with open(lookup_path, 'r+') as f:
-                    try:
-                        data = json.load(f)
-                    except ValueError:
-                        data = {}
-                    data[vm_uuid] = {
-                        'name': vm_info['name_label'],
-                    }
-                    f.seek(0)
-                    json.dump(
-                        data,
-                        f,
-                        sort_keys=True,
-                        indent=4, 
-                        separators=(',', ': '),
-                    )
-                vm_snap_path = os.path.abspath(os.path.join(vm_path, '{}.xva'.format(snapshot_name)))
+                vm_snap_path = os.path.abspath(os.path.join(vm_path, filename))
                 self._download_url(vm_snap_path, url)
-                self.logger.info('Snapshot "{}" successfully downloaded. Removing snapshot from the server [xenserver="{}"] [vm_name="{}"] [uuid="{}"]'.format(
-                    snapshot_name,
-                    self.server, 
-                    vm_info['name_label'], 
-                    vm_uuid,
-                ))
-                
+                self.logger.info('Snapshot for vm {} successfully downloaded. Removing snapshot from the server.'.format(
+                    vm_info['name_label'],
+                ), extra=extra)                
                 self.delete_snapshot(snapshot_opaque_ref, vm_info)
+                if self.enable_rotate:
+                    self.rotate(vm_snap_path)
                 done = True
                 return True
             except Exception, e:
-                self.logger.error('Error downloading snapshot: {} [xenserver="{}"] [vm_name="{}"]'.format(
-                    str(e),
-                    self.server, 
+                self.logger.exception('Error downloading snapshot for {}'.format(
                     vm_info['name_label'], 
-                ))
+                ), extra={
+                    'error': str(e),
+                    'host': self.server,
+                    'vm_name': vm_info['name_label'],
+                })
         return False
 
     def delete_snapshot(self, snapshot_opaque_ref, vm_info):
@@ -219,18 +196,18 @@ class XenBackup(object):
             self.session.xenapi.VM.destroy(snapshot_opaque_ref)
             return True
         except Exception, e:
-            self.logger.error('Error deleting snapshot: {} [xenserver="{}"] [vm_name="{}"]'.format(
-                str(e),
-                self.server, 
-                vm_info['name_label'], 
-            ))
+            self.logger.exception('Error deleting snapshot for {}'.format(vm_info['name_label']), extra={
+                'error': str(e),
+                'host': self.server,
+                'vm_name': vm_info['name_label'],
+            })
         return False
 
     def _download_url(self, path, url):
         socket.setdefaulttimeout(120)
         request = urllib2.Request(url)
         request.add_header('Authorization', 'Basic {}'.format(self.auth))
-        result = urllib2.urlopen(request)
+        result = urllib2.urlopen(request, context=ssl._create_unverified_context())
         with open(path, r'wb') as f:
             block_sz = 8192
             while True:
@@ -239,26 +216,23 @@ class XenBackup(object):
                     break
                 f.write(buffer)
 
-    def rotate(self, path, snapshots_max=3):
+    def rotate(self, path):
         '''
         :param path: str
-        :param snapshots_max: int - default 3
         :returns: boolean
         '''
         try:
-            dirs = os.listdir(path)
-            for vm in dirs:
-                path_vm = os.path.abspath(os.path.join(path, vm))
-                if not os.path.isdir(path_vm):
-                    continue
-                files = sorted(os.listdir(path_vm))
-                count = len(files)
-                if count > snapshots_max:
-                    for snapshot in files[0:count-snapshots_max]:
-                        os.remove(os.path.abspath(os.path.join(path_vm, snapshot)))
+            rotator.rotate(
+                SimpleRotator(self.rotate_num, False),
+                path=path,
+                ext='.xva',
+            )
             return True
         except Exception, e:
-            self.logger.error('Error rotating snapshots: {} [xenserver="{}"]'.format(str(e), self.server))
+            self.logger.error('Error rotating snapshots', extra={
+                'host': self.server,
+                'error': str(e),
+            })
         return False
 
 def main():
@@ -271,35 +245,31 @@ def main():
     parser.add_argument('--retry_max', help='max retries per VM', default=3, type=int)    
     parser.add_argument('--retry_delay', help='number of seconds to wait after each failed try', default=30, type=int)
 
-    parser.add_argument('--rotate_snapshots', help='enable rotate', default=True, type=bool)
-    parser.add_argument('--rotate_snapshots_max', help='maximum number of snapshots stored in a directory', default=3, type=int)
+    parser.add_argument('--rotate', help='enable rotate', default=True, type=bool)
+    parser.add_argument('--rotate_num', help='maximum number of snapshots stored in a directory', default=5, type=int)
 
     parser.add_argument('--vms', help='a comma separated list of virtual machines to backup', default=None, type=str)
 
-    parser.add_argument('--syslog_ip', help='ip/hostname of the syslog server', default='127.0.0.1', type=str)
-    parser.add_argument('--syslog_port', help='port of the syslog server', default=514, type=int)
+    parser.add_argument('--logstash_host', help='ip/hostname of the syslog server', default='127.0.0.1', type=str)
+    parser.add_argument('--logstash_port', help='port of the syslog server', default=5959, type=int)
 
     args = parser.parse_args()
 
     logger = logging.getLogger('xenbackup')
-    handler = SysLogHandler(
-        address=(args.syslog_ip, args.syslog_port),
-        facility=14,
-    )
-    handler.setFormatter(
-        RFC5424Formatter(
-            '1 %(isotime)s %(hostname)s %(name)s %(process)d - - %(message)s'
-        )
-    )
-    logger.addHandler(handler)
-    logger.setLevel(20)
-    logger.info('Starting backup of VMs [xenserver="{}"] '.format(args.host))
+    logger.addHandler(logging.StreamHandler())
+    logger.addHandler(logstash.LogstashHandler(args.logstash_host, args.logstash_port, version=1))
+    logger.setLevel(logging.INFO)
+    logger.info('Starting backup of VMs on {} '.format(args.host), extra={
+        'host': args.host,
+    })
     try:
         xenbackup = XenBackup(
             server=args.host,
             user=args.user,
             password=args.password,
             logger=logger,
+            rotate=args.rotate,
+            rotate_num=args.rotate_num,
         )
         backup_vms = []
         if args.vms:
@@ -314,14 +284,8 @@ def main():
                     retry_max=args.retry_max,
                     retry_delay=args.retry_delay,
                 )
-        if args.rotate_snapshots:
-            xenbackup.rotate(
-                path=args.path,
-                snapshots_max=args.rotate_snapshots_max,
-            )
     except Exception, e:
-        logger.error('Error occurred when trying to backup VMS. {} [xenserver="{}"]'.format(
-            str(e), 
+        logger.exception('Error occurred when trying to backup VMS from {}'.format(
             args.host
         ))
         raise

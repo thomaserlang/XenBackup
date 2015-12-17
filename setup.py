@@ -12,7 +12,10 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     zip_safe=False,
-    install_requires=[],
+    install_requires=[
+        'archive-rotator>=0.2.0,>0.3.0',
+        'python-logstash==0.4.5',
+    ],
     extras_require={},
     license=None,
     include_package_data=True,

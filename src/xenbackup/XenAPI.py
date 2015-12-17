@@ -59,6 +59,7 @@ import xmlrpclib
 import httplib
 import socket
 import sys
+import ssl
 
 translation = gettext.translation('xen-xm', fallback = True)
 
@@ -127,7 +128,7 @@ class Session(xmlrpclib.ServerProxy):
     def __init__(self, uri, transport=None, encoding=None, verbose=0,
                  allow_none=1):
         xmlrpclib.ServerProxy.__init__(self, uri, transport, encoding,
-                                       verbose, allow_none)
+                                       verbose, allow_none, context=ssl._create_unverified_context())
         self.transport = transport
         self._session = None
         self.last_login_method = None
