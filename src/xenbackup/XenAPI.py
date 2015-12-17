@@ -127,8 +127,11 @@ class Session(xmlrpclib.ServerProxy):
 
     def __init__(self, uri, transport=None, encoding=None, verbose=0,
                  allow_none=1):
-        xmlrpclib.ServerProxy.__init__(self, uri, transport, encoding,
+        try:
+            xmlrpclib.ServerProxy.__init__(self, uri, transport, encoding,
                                        verbose, allow_none, context=ssl._create_unverified_context())
+        except AttributeError:
+            xmlrpclib.ServerProxy.__init__(self, uri, transport, encoding, verbose, allow_none)
         self.transport = transport
         self._session = None
         self.last_login_method = None

@@ -212,7 +212,12 @@ class XenBackup(object):
         socket.setdefaulttimeout(120)
         request = urllib2.Request(url)
         request.add_header('Authorization', 'Basic {}'.format(self.auth))
-        result = urllib2.urlopen(request, context=ssl._create_unverified_context())
+
+        try:
+            result = urllib2.urlopen(request, context=ssl._create_unverified_context())                                       
+        except AttributeError:
+            result = urllib2.urlopen(request)  
+
         with open(path, r'wb') as f:
             block_sz = 8192
             while True:
