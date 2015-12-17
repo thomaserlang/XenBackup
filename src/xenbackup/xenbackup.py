@@ -47,11 +47,11 @@ class XenBackup(object):
         :param user: str
         :param password: str
         '''
-        self.server = self.login(server, user, password)
         self.auth = auth = base64.encodestring("%s:%s" % (user, password)).strip()
         self.logger = logger
         self.enable_rotate = rotate
         self.rotate_num = rotate_num
+        self.server = self.login(server, user, password)
 
     def login(self, server, user, password):
         try:
@@ -60,7 +60,12 @@ class XenBackup(object):
             return server
         except XenAPI.Failure as e:
             if e.details[0] == 'HOST_IS_SLAVE':
-                return self.login(e.details[1], user, password) 
+                newserver = e.details[1]
+                self.logger.info('{} is a slave, changing to the master: {}'.format(
+                    server,
+                    newserver,
+                ))
+                return self.login(newserver, user, password) 
             raise
 
     def get_vms(self):
