@@ -13,7 +13,7 @@ setup(
     packages=find_packages('src'),
     zip_safe=False,
     install_requires=[
-        'archive-rotator>=0.2.0,>0.3.0',
+        'archive-rotator==0.2.1',
         'python-logstash==0.4.5',
     ],
     extras_require={},
