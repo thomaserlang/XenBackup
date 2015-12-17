@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='XenBackup',
-    version='0.1.1',
+    version='0.1.2',
     author='Thomas Erlang',
     author_email='thomas@erlang.dk',
     url='https://github.com/thomaserlang/xenbackup',
